@@ -1,0 +1,157 @@
+version: "1.0"
+id: deployment-with-rollback
+service: api
+team: platform
+environment: production
+title: "Production Deployment with Rollback Options"
+description: "Deployment checklist with branching paths for success/failure scenarios"
+tags:
+  type: deployment
+  strategy: rollback
+  flow: branching
+
+steps:
+  # Initial preparation steps
+  - id: "pre-deploy-checks"
+    title: "Pre-deployment Checks"
+    description: "Verify all prerequisites before deployment"
+    type: "manual"
+    dependsOn: []
+    
+  - id: "backup-database"
+    title: "Backup Production Database"
+    description: "Create a full backup of the production database"
+    type: "manual"
+    dependsOn: ["pre-deploy-checks"]
+    
+  - id: "backup-application"
+    title: "Backup Application Files"
+    description: "Create backup of current application version"
+    type: "manual"
+    dependsOn: ["pre-deploy-checks"]
+    
+  # Parallel preparation can happen after both backups
+  - id: "prepare-deployment"
+    title: "Prepare Deployment Package"
+    description: "Prepare and validate deployment artifacts"
+    type: "manual"
+    dependsOn: ["backup-database", "backup-application"]
+    
+  - id: "notify-team-start"
+    title: "Notify Team - Deployment Starting"
+    description: "Send deployment start notification"
+    type: "manual"
+    dependsOn: ["backup-database", "backup-application"]
+    
+  # Deployment execution
+  - id: "stop-services"
+    title: "Stop Application Services"
+    description: "Gracefully stop all application services"
+    type: "manual"
+    dependsOn: ["prepare-deployment", "notify-team-start"]
+    
+  - id: "deploy-code"
+    title: "Deploy Application Code"
+    description: "Deploy the new version of the application"
+    type: "manual"
+    dependsOn: ["stop-services"]
+    
+  - id: "run-migrations"
+    title: "Run Database Migrations"
+    description: "Execute any pending database migrations"
+    type: "manual"
+    dependsOn: ["deploy-code"]
+    
+  - id: "start-services"
+    title: "Start Application Services"
+    description: "Start all application services with new code"
+    type: "manual"
+    dependsOn: ["run-migrations"]
+    
+  # Health check and decision point
+  - id: "health-check"
+    title: "Perform Health Check"
+    description: "Verify application is running correctly"
+    type: "manual"
+    dependsOn: ["start-services"]
+    
+  - id: "smoke-tests"
+    title: "Run Smoke Tests"
+    description: "Execute critical path smoke tests"
+    type: "manual"
+    dependsOn: ["health-check"]
+    
+  # SUCCESS PATH - Both health check and smoke tests must pass
+  - id: "deployment-success"
+    title: "Mark Deployment as Successful"
+    description: "Record successful deployment in logs"
+    type: "manual"
+    dependsOn: ["health-check", "smoke-tests"]
+    
+  - id: "cleanup-old-backups"
+    title: "Cleanup Old Backups"
+    description: "Remove old backup files to save space"
+    type: "manual"
+    dependsOn: ["deployment-success"]
+    
+  - id: "notify-team-success"
+    title: "Notify Team - Deployment Successful"
+    description: "Send success notification to team"
+    type: "manual"
+    dependsOn: ["deployment-success"]
+    
+  # ROLLBACK PATH - If health check OR smoke tests fail
+  - id: "rollback-decision"
+    title: "Decide on Rollback"
+    description: "Determine if rollback is necessary due to failed checks"
+    type: "manual"
+    dependsOn: ["health-check"]  # Can be triggered if health check reveals issues
+    
+  - id: "stop-failed-services"
+    title: "Stop Failed Services"
+    description: "Stop the failing application services"
+    type: "manual"
+    dependsOn: ["rollback-decision"]
+    
+  - id: "restore-application"
+    title: "Restore Application Files"
+    description: "Restore previous application version from backup"
+    type: "manual"
+    dependsOn: ["stop-failed-services"]
+    
+  - id: "restore-database"
+    title: "Restore Database"
+    description: "Restore database from backup if migrations were applied"
+    type: "manual"
+    dependsOn: ["stop-failed-services"]
+    
+  - id: "restart-services-rollback"
+    title: "Restart Services (Rollback)"
+    description: "Start services with rolled back version"
+    type: "manual"
+    dependsOn: ["restore-application", "restore-database"]
+    
+  - id: "verify-rollback"
+    title: "Verify Rollback Success"
+    description: "Confirm rolled back version is working"
+    type: "manual"
+    dependsOn: ["restart-services-rollback"]
+    
+  - id: "notify-team-rollback"
+    title: "Notify Team - Rollback Complete"
+    description: "Send rollback notification and incident details"
+    type: "manual"
+    dependsOn: ["verify-rollback"]
+    
+  # MONITORING PATH - Runs in parallel with success notifications
+  - id: "monitor-post-deployment"
+    title: "Monitor Post-Deployment"
+    description: "Monitor system for 1 hour after deployment"
+    type: "manual"
+    dependsOn: ["deployment-success"]
+    
+  - id: "update-documentation"
+    title: "Update Deployment Documentation"
+    description: "Update deployment logs and documentation"
+    type: "manual"
+    dependsOn: ["deployment-success"]

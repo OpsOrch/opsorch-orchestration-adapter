@@ -1,0 +1,92 @@
+version: "1.0"
+id: maintenance-procedure
+service: infrastructure
+team: platform
+environment: production
+title: "Scheduled Maintenance Procedure"
+description: "Standard procedure for performing scheduled system maintenance"
+tags:
+  type: maintenance
+  schedule: planned
+  scope: system
+  impact: downtime
+
+steps:
+  - id: "maintenance-announcement"
+    title: "Announce Maintenance Window"
+    description: "Send maintenance notification to users and stakeholders"
+    type: "manual"
+    reasoning: "Confirm the approved maintenance window and communication template before sending."
+    dependsOn: []
+    
+  - id: "backup-systems"
+    title: "Backup Critical Systems"
+    description: "Create backups of all critical systems and data"
+    type: "manual"
+    dependsOn: ["maintenance-announcement"]
+    
+  - id: "enable-maintenance-mode"
+    title: "Enable Maintenance Mode"
+    description: "Put applications into maintenance mode"
+    type: "manual"
+    dependsOn: ["backup-systems"]
+    
+  - id: "stop-non-critical-services"
+    title: "Stop Non-Critical Services"
+    description: "Shutdown non-essential services to free resources"
+    type: "manual"
+    dependsOn: ["enable-maintenance-mode"]
+    
+  - id: "perform-system-updates"
+    title: "Perform System Updates"
+    description: "Apply operating system and security updates"
+    type: "automated"
+    exec:
+      image: "ghcr.io/opsorch/system-updates:latest"
+      args: ["apply", "--security-only"]
+    dependsOn: ["stop-non-critical-services"]
+    
+  - id: "update-applications"
+    title: "Update Applications"
+    description: "Update application software and dependencies"
+    type: "manual"
+    dependsOn: ["perform-system-updates"]
+    
+  - id: "restart-systems"
+    title: "Restart Systems"
+    description: "Reboot systems if required by updates"
+    type: "manual"
+    dependsOn: ["update-applications"]
+    
+  - id: "start-services"
+    title: "Start All Services"
+    description: "Start all services in proper order"
+    type: "manual"
+    dependsOn: ["restart-systems"]
+    
+  - id: "verify-functionality"
+    title: "Verify System Functionality"
+    description: "Test all critical system functions"
+    type: "automated"
+    exec:
+      image: "ghcr.io/opsorch/maintenance-checks:latest"
+      args: ["verify", "--suite", "critical"]
+    dependsOn: ["start-services"]
+    
+  - id: "disable-maintenance-mode"
+    title: "Disable Maintenance Mode"
+    description: "Remove maintenance mode and restore normal operations"
+    type: "manual"
+    dependsOn: ["verify-functionality"]
+    
+  - id: "monitor-systems"
+    title: "Monitor Systems"
+    description: "Monitor systems for 30 minutes post-maintenance"
+    type: "manual"
+    dependsOn: ["disable-maintenance-mode"]
+    
+  - id: "maintenance-complete"
+    title: "Announce Maintenance Complete"
+    description: "Send completion notification to users and stakeholders"
+    type: "manual"
+    dependsOn: ["monitor-systems"]

@@ -1,0 +1,233 @@
+version: "1.0"
+id: multi-environment-release
+service: api
+team: release-engineering
+environment: production
+title: "Multi-Environment Release Pipeline"
+description: "Release process with branching for different environments and approval gates"
+tags:
+  type: release
+  scope: multi-environment
+  control: approval
+  flow: branching
+
+steps:
+  # Initial preparation
+  - id: "prepare-release"
+    title: "Prepare Release Artifacts"
+    description: "Build and prepare release artifacts"
+    type: "manual"
+    dependsOn: []
+    
+  - id: "security-scan"
+    title: "Security Vulnerability Scan"
+    description: "Run security scans on release artifacts"
+    type: "manual"
+    dependsOn: ["prepare-release"]
+    
+  - id: "quality-gate"
+    title: "Quality Gate Review"
+    description: "Review test results and quality metrics"
+    type: "manual"
+    dependsOn: ["prepare-release"]
+    
+  # DEV ENVIRONMENT PATH
+  - id: "deploy-to-dev"
+    title: "Deploy to Development"
+    description: "Deploy release to development environment"
+    type: "manual"
+    dependsOn: ["security-scan", "quality-gate"]
+    
+  - id: "dev-smoke-tests"
+    title: "Development Smoke Tests"
+    description: "Run smoke tests in development environment"
+    type: "manual"
+    dependsOn: ["deploy-to-dev"]
+    
+  - id: "dev-integration-tests"
+    title: "Development Integration Tests"
+    description: "Run full integration test suite in development"
+    type: "manual"
+    dependsOn: ["deploy-to-dev"]
+    
+  # STAGING ENVIRONMENT PATH - Requires dev success
+  - id: "staging-approval"
+    title: "Staging Deployment Approval"
+    description: "Get approval for staging deployment"
+    type: "manual"
+    dependsOn: ["dev-smoke-tests", "dev-integration-tests"]
+    
+  - id: "deploy-to-staging"
+    title: "Deploy to Staging"
+    description: "Deploy release to staging environment"
+    type: "manual"
+    dependsOn: ["staging-approval"]
+    
+  - id: "staging-smoke-tests"
+    title: "Staging Smoke Tests"
+    description: "Run smoke tests in staging environment"
+    type: "manual"
+    dependsOn: ["deploy-to-staging"]
+    
+  - id: "staging-performance-tests"
+    title: "Staging Performance Tests"
+    description: "Run performance tests in staging environment"
+    type: "manual"
+    dependsOn: ["deploy-to-staging"]
+    
+  - id: "staging-security-tests"
+    title: "Staging Security Tests"
+    description: "Run security tests in staging environment"
+    type: "manual"
+    dependsOn: ["deploy-to-staging"]
+    
+  - id: "uat-testing"
+    title: "User Acceptance Testing"
+    description: "Coordinate user acceptance testing in staging"
+    type: "manual"
+    dependsOn: ["staging-smoke-tests"]
+    
+  # PRODUCTION APPROVAL GATE - Multiple approvals required
+  - id: "technical-approval"
+    title: "Technical Lead Approval"
+    description: "Get technical approval for production deployment"
+    type: "manual"
+    dependsOn: ["staging-smoke-tests", "staging-performance-tests", "staging-security-tests"]
+    
+  - id: "business-approval"
+    title: "Business Stakeholder Approval"
+    description: "Get business approval for production deployment"
+    type: "manual"
+    dependsOn: ["uat-testing"]
+    
+  - id: "security-approval"
+    title: "Security Team Approval"
+    description: "Get security team approval for production deployment"
+    type: "manual"
+    dependsOn: ["staging-security-tests"]
+    
+  # PRODUCTION DEPLOYMENT PATHS
+  - id: "schedule-maintenance-window"
+    title: "Schedule Maintenance Window"
+    description: "Schedule production maintenance window"
+    type: "manual"
+    dependsOn: ["technical-approval", "business-approval", "security-approval"]
+    
+  # BLUE-GREEN DEPLOYMENT PATH
+  - id: "prepare-blue-green"
+    title: "Prepare Blue-Green Deployment"
+    description: "Set up blue-green deployment infrastructure"
+    type: "manual"
+    dependsOn: ["schedule-maintenance-window"]
+    
+  - id: "deploy-to-green"
+    title: "Deploy to Green Environment"
+    description: "Deploy new version to green environment"
+    type: "manual"
+    dependsOn: ["prepare-blue-green"]
+    
+  - id: "test-green-environment"
+    title: "Test Green Environment"
+    description: "Validate green environment before traffic switch"
+    type: "manual"
+    dependsOn: ["deploy-to-green"]
+    
+  - id: "switch-traffic-to-green"
+    title: "Switch Traffic to Green"
+    description: "Route production traffic to green environment"
+    type: "manual"
+    dependsOn: ["test-green-environment"]
+    
+  # ROLLING DEPLOYMENT PATH (Alternative to blue-green)
+  - id: "prepare-rolling-deployment"
+    title: "Prepare Rolling Deployment"
+    description: "Prepare for rolling deployment strategy"
+    type: "manual"
+    dependsOn: ["schedule-maintenance-window"]
+    
+  - id: "deploy-to-subset"
+    title: "Deploy to Server Subset"
+    description: "Deploy to a subset of production servers"
+    type: "manual"
+    dependsOn: ["prepare-rolling-deployment"]
+    
+  - id: "monitor-subset-deployment"
+    title: "Monitor Subset Deployment"
+    description: "Monitor subset deployment for issues"
+    type: "manual"
+    dependsOn: ["deploy-to-subset"]
+    
+  - id: "deploy-to-remaining-servers"
+    title: "Deploy to Remaining Servers"
+    description: "Complete rolling deployment to all servers"
+    type: "manual"
+    dependsOn: ["monitor-subset-deployment"]
+    
+  # POST-DEPLOYMENT VALIDATION - Both paths converge
+  - id: "production-smoke-tests"
+    title: "Production Smoke Tests"
+    description: "Run smoke tests in production"
+    type: "manual"
+    dependsOn: ["switch-traffic-to-green", "deploy-to-remaining-servers"]
+    
+  - id: "production-health-check"
+    title: "Production Health Check"
+    description: "Comprehensive health check of production systems"
+    type: "manual"
+    dependsOn: ["switch-traffic-to-green", "deploy-to-remaining-servers"]
+    
+  - id: "monitor-production-metrics"
+    title: "Monitor Production Metrics"
+    description: "Monitor key production metrics for anomalies"
+    type: "manual"
+    dependsOn: ["production-smoke-tests", "production-health-check"]
+    
+  # SUCCESS PATH
+  - id: "release-success"
+    title: "Mark Release as Successful"
+    description: "Record successful release completion"
+    type: "manual"
+    dependsOn: ["monitor-production-metrics"]
+    
+  - id: "cleanup-old-versions"
+    title: "Cleanup Old Versions"
+    description: "Remove old application versions and artifacts"
+    type: "manual"
+    dependsOn: ["release-success"]
+    
+  - id: "notify-stakeholders-success"
+    title: "Notify Stakeholders - Success"
+    description: "Send release success notification"
+    type: "manual"
+    dependsOn: ["release-success"]
+    
+  - id: "update-release-notes"
+    title: "Update Release Notes"
+    description: "Publish final release notes and documentation"
+    type: "manual"
+    dependsOn: ["release-success"]
+    
+  # ROLLBACK PATH - Can be triggered from any production step
+  - id: "initiate-rollback"
+    title: "Initiate Production Rollback"
+    description: "Begin rollback procedure due to production issues"
+    type: "manual"
+    dependsOn: ["production-smoke-tests"]  # Can be triggered if tests fail
+    
+  - id: "rollback-traffic-routing"
+    title: "Rollback Traffic Routing"
+    description: "Route traffic back to previous version"
+    type: "manual"
+    dependsOn: ["initiate-rollback"]
+    
+  - id: "verify-rollback-success"
+    title: "Verify Rollback Success"
+    description: "Confirm rollback restored system stability"
+    type: "manual"
+    dependsOn: ["rollback-traffic-routing"]
+    
+  - id: "notify-stakeholders-rollback"
+    title: "Notify Stakeholders - Rollback"
+    description: "Send rollback notification and incident report"
+    type: "manual"
+    dependsOn: ["verify-rollback-success"]

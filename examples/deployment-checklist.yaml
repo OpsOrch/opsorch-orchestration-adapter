@@ -1,0 +1,72 @@
+version: "1.0"
+id: deployment-checklist
+service: api
+team: platform
+environment: production
+title: "Production Deployment Checklist"
+description: "Standard checklist for deploying applications to production environment"
+tags:
+  type: deployment
+  category: release
+
+steps:
+  - id: "pre-deploy-checks"
+    title: "Pre-deployment Checks"
+    description: "Verify all prerequisites before deployment"
+    type: "manual"
+    reasoning: "Confirm approvals, maintenance window, rollback owner, and release artifact version."
+    dependsOn: []
+    
+  - id: "backup-database"
+    title: "Backup Production Database"
+    description: "Create a full backup of the production database"
+    type: "manual"
+    dependsOn: ["pre-deploy-checks"]
+    
+  - id: "stop-services"
+    title: "Stop Application Services"
+    description: "Gracefully stop all application services"
+    type: "manual"
+    dependsOn: ["backup-database"]
+    
+  - id: "deploy-code"
+    title: "Deploy Application Code"
+    description: "Deploy the new version of the application"
+    type: "manual"
+    dependsOn: ["stop-services"]
+    
+  - id: "run-migrations"
+    title: "Run Database Migrations"
+    description: "Execute any pending database migrations"
+    type: "automated"
+    exec:
+      image: "ghcr.io/opsorch/migrations:latest"
+      args: ["up"]
+    dependsOn: ["deploy-code"]
+    
+  - id: "start-services"
+    title: "Start Application Services"
+    description: "Start all application services with new code"
+    type: "manual"
+    dependsOn: ["run-migrations"]
+    
+  - id: "health-check"
+    title: "Perform Health Check"
+    description: "Verify application is running correctly"
+    type: "manual"
+    dependsOn: ["start-services"]
+    
+  - id: "smoke-tests"
+    title: "Run Smoke Tests"
+    description: "Execute critical path smoke tests"
+    type: "automated"
+    exec:
+      image: "ghcr.io/opsorch/smoke-tests:latest"
+      args: ["--env", "production"]
+    dependsOn: ["health-check"]
+    
+  - id: "notify-team"
+    title: "Notify Team of Deployment"
+    description: "Send deployment completion notification to team"
+    type: "manual"
+    dependsOn: ["smoke-tests"]

@@ -1,0 +1,72 @@
+version: "1.0"
+id: incident-response
+service: api
+team: sre
+environment: production
+title: "Incident Response Runbook"
+description: "Standard operating procedure for handling production incidents"
+tags:
+  type: incident
+  severity: emergency
+  workflow: response
+
+steps:
+  - id: "acknowledge-alert"
+    title: "Acknowledge Alert"
+    description: "Acknowledge the incident alert in monitoring system"
+    type: "manual"
+    dependsOn: []
+    
+  - id: "assess-severity"
+    title: "Assess Incident Severity"
+    description: "Determine incident severity level (P1-P4)"
+    type: "manual"
+    dependsOn: ["acknowledge-alert"]
+    
+  - id: "create-incident-ticket"
+    title: "Create Incident Ticket"
+    description: "Create incident tracking ticket with initial details"
+    type: "manual"
+    dependsOn: ["assess-severity"]
+    
+  - id: "notify-stakeholders"
+    title: "Notify Stakeholders"
+    description: "Alert relevant stakeholders based on severity level"
+    type: "manual"
+    dependsOn: ["create-incident-ticket"]
+    
+  - id: "gather-initial-data"
+    title: "Gather Initial Data"
+    description: "Collect logs, metrics, and system state information"
+    type: "manual"
+    dependsOn: ["notify-stakeholders"]
+    
+  - id: "identify-root-cause"
+    title: "Identify Root Cause"
+    description: "Investigate and identify the root cause of the incident"
+    type: "manual"
+    dependsOn: ["gather-initial-data"]
+    
+  - id: "implement-fix"
+    title: "Implement Fix"
+    description: "Apply the fix or workaround to resolve the incident"
+    type: "manual"
+    dependsOn: ["identify-root-cause"]
+    
+  - id: "verify-resolution"
+    title: "Verify Resolution"
+    description: "Confirm the incident has been resolved and systems are stable"
+    type: "manual"
+    dependsOn: ["implement-fix"]
+    
+  - id: "update-stakeholders"
+    title: "Update Stakeholders"
+    description: "Notify stakeholders that the incident has been resolved"
+    type: "manual"
+    dependsOn: ["verify-resolution"]
+    
+  - id: "schedule-postmortem"
+    title: "Schedule Post-mortem"
+    description: "Schedule post-mortem meeting for P1/P2 incidents"
+    type: "manual"
+    dependsOn: ["update-stakeholders"]

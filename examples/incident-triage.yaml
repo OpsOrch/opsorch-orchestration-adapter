@@ -1,0 +1,166 @@
+version: "1.0"
+id: incident-triage
+service: api
+team: sre
+environment: production
+title: "Incident Triage and Response"
+description: "Incident response with branching based on severity and type"
+tags:
+  type: incident
+  workflow: triage
+  flow: branching
+  dimension: severity
+
+steps:
+  # Initial response
+  - id: "acknowledge-alert"
+    title: "Acknowledge Alert"
+    description: "Acknowledge the incident alert in monitoring system"
+    type: "manual"
+    dependsOn: []
+    
+  - id: "initial-assessment"
+    title: "Initial Assessment"
+    description: "Quick assessment of the incident scope and impact"
+    type: "manual"
+    dependsOn: ["acknowledge-alert"]
+    
+  # Parallel information gathering
+  - id: "gather-logs"
+    title: "Gather System Logs"
+    description: "Collect relevant system and application logs"
+    type: "manual"
+    dependsOn: ["initial-assessment"]
+    
+  - id: "check-metrics"
+    title: "Check System Metrics"
+    description: "Review system performance metrics and dashboards"
+    type: "manual"
+    dependsOn: ["initial-assessment"]
+    
+  - id: "check-recent-changes"
+    title: "Check Recent Changes"
+    description: "Review recent deployments, configuration changes"
+    type: "manual"
+    dependsOn: ["initial-assessment"]
+    
+  # Severity assessment after information gathering
+  - id: "assess-severity"
+    title: "Assess Incident Severity"
+    description: "Determine incident severity level (P1-P4) based on gathered info"
+    type: "manual"
+    dependsOn: ["gather-logs", "check-metrics", "check-recent-changes"]
+    
+  # P1/P2 CRITICAL PATH - High severity incidents
+  - id: "escalate-critical"
+    title: "Escalate Critical Incident"
+    description: "Immediately escalate P1/P2 incidents to senior staff"
+    type: "manual"
+    dependsOn: ["assess-severity"]
+    
+  - id: "create-war-room"
+    title: "Create War Room"
+    description: "Set up dedicated communication channel for critical incident"
+    type: "manual"
+    dependsOn: ["escalate-critical"]
+    
+  - id: "notify-executives"
+    title: "Notify Executive Team"
+    description: "Alert executive team for P1 incidents"
+    type: "manual"
+    dependsOn: ["escalate-critical"]
+    
+  - id: "external-communication"
+    title: "Prepare External Communication"
+    description: "Draft customer communication for critical incidents"
+    type: "manual"
+    dependsOn: ["create-war-room"]
+    
+  # P3/P4 STANDARD PATH - Lower severity incidents
+  - id: "create-standard-ticket"
+    title: "Create Standard Incident Ticket"
+    description: "Create incident tracking ticket for P3/P4 incidents"
+    type: "manual"
+    dependsOn: ["assess-severity"]
+    
+  - id: "assign-to-team"
+    title: "Assign to Appropriate Team"
+    description: "Route incident to the appropriate team based on type"
+    type: "manual"
+    dependsOn: ["create-standard-ticket"]
+    
+  # INVESTIGATION PATHS - Different approaches based on incident type
+  - id: "investigate-performance"
+    title: "Investigate Performance Issues"
+    description: "Deep dive into performance metrics and resource usage"
+    type: "manual"
+    dependsOn: ["assess-severity"]  # Can branch from severity assessment
+    
+  - id: "investigate-security"
+    title: "Investigate Security Issues"
+    description: "Security-focused investigation and containment"
+    type: "manual"
+    dependsOn: ["assess-severity"]
+    
+  - id: "investigate-application"
+    title: "Investigate Application Issues"
+    description: "Application-specific debugging and analysis"
+    type: "manual"
+    dependsOn: ["assess-severity"]
+    
+  # MITIGATION PATHS - Can run in parallel after investigation
+  - id: "implement-quick-fix"
+    title: "Implement Quick Fix"
+    description: "Apply immediate workaround or fix"
+    type: "manual"
+    dependsOn: ["investigate-performance", "investigate-application"]  # Either investigation path
+    
+  - id: "implement-security-containment"
+    title: "Implement Security Containment"
+    description: "Contain security incident and prevent spread"
+    type: "manual"
+    dependsOn: ["investigate-security"]
+    
+  - id: "scale-resources"
+    title: "Scale System Resources"
+    description: "Scale up resources to handle load"
+    type: "manual"
+    dependsOn: ["investigate-performance"]
+    
+  # VERIFICATION - All mitigation paths converge here
+  - id: "verify-resolution"
+    title: "Verify Resolution"
+    description: "Confirm the incident has been resolved"
+    type: "manual"
+    dependsOn: ["implement-quick-fix", "implement-security-containment", "scale-resources"]
+    
+  # POST-INCIDENT - Parallel activities after resolution
+  - id: "update-stakeholders"
+    title: "Update All Stakeholders"
+    description: "Notify all stakeholders of resolution"
+    type: "manual"
+    dependsOn: ["verify-resolution"]
+    
+  - id: "document-resolution"
+    title: "Document Resolution"
+    description: "Document the resolution steps and root cause"
+    type: "manual"
+    dependsOn: ["verify-resolution"]
+    
+  - id: "schedule-postmortem"
+    title: "Schedule Post-mortem"
+    description: "Schedule post-mortem for P1/P2 incidents"
+    type: "manual"
+    dependsOn: ["verify-resolution", "escalate-critical"]  # Only for critical incidents
+    
+  - id: "update-runbooks"
+    title: "Update Runbooks"
+    description: "Update incident response procedures based on learnings"
+    type: "manual"
+    dependsOn: ["document-resolution"]
+    
+  - id: "monitor-stability"
+    title: "Monitor System Stability"
+    description: "Extended monitoring to ensure incident doesn't recur"
+    type: "manual"
+    dependsOn: ["verify-resolution"]
